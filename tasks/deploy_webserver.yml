@@ -1,0 +1,56 @@
+---
+- name: Install required packages.
+  ansible.builtin.yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - python3-pip
+    - httpd
+    - mod_ssl
+
+- name: Install required Python module.
+  ansible.builtin.pip:
+    name: cryptography
+    state: present
+
+- name: edit httpd.conf
+  ansible.builtin.lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: "^#ServerName "
+    line: ServerName localhost:80
+      
+- name: edit ssl.conf
+  ansible.builtin.lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: "{{ item.pattern }}"
+    line: "{{ item.replace }}"
+  become: true
+  loop:
+    - pattern: "^SSLCertificateFile "
+      replace: SSLCertificateFile /etc/pki/tls/private/server.crt
+    - pattern: "^SSLCertificateKeyFile "
+      replace: SSLCertificateKeyFile /etc/pki/tls/private/server.key
+  
+- name: put config enabling the ssl secret password to be used automatically.
+  ansible.builtin.copy:
+    src: httpd-ssl-pass-dialog
+    dest: /usr/libexec/httpd-ssl-pass-dialog
+    state: present
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Put index.html
+  ansible.builtin.copy:
+    src: index.html
+    dest: /var/www/index.html
+    state: present
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: enable and start apache.
+  ansible.builtin.systemd:
+    name: httpd
+    state: started
+    enabled: true
