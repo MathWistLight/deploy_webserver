@@ -47,8 +47,7 @@
     group: root
     mode: "0644"
 
-- name: enable and start apache.
+- name: enable apache.
   ansible.builtin.systemd:
     name: httpd
-    state: started
     enabled: true
